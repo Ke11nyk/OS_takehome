@@ -1,9 +1,9 @@
-package os.takehome;
+package os.takehome.component;
 
 import java.net.*;
 import java.util.concurrent.*;
 
-class Component {
+public class Component {
     private final int index;
     private final char symbol;
     private Future<Double> result;

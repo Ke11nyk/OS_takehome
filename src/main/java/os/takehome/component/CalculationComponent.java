@@ -1,6 +1,6 @@
-package os.takehome;
+package os.takehome.component;
 
-interface CalculationComponent {
+public interface CalculationComponent {
     double calculate(int input);
     char getSymbol();
 }

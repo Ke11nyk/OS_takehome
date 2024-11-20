@@ -1,8 +1,8 @@
-package os.takehome;
+package os.takehome.component;
 
 import java.util.*;
 
-class ComponentFactory {
+public class ComponentFactory {
     private static final Map<Character, CalculationComponent> COMPONENTS = new HashMap<>();
 
     static {

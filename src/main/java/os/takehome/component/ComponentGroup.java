@@ -1,8 +1,8 @@
-package os.takehome;
+package os.takehome.component;
 
 import java.util.*;
 
-class ComponentGroup {
+public class ComponentGroup {
     private final int index;
     private final Map<Integer, Component> components;
     private boolean isRunning;
