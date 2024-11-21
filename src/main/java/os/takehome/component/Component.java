@@ -6,6 +6,7 @@ import java.util.concurrent.*;
 public class Component {
     private final int index;
     private final char symbol;
+    private Integer timeLimit; // in seconds
     private Future<Double> result;
     private ComponentStatus status;
     private final Socket socket;
@@ -19,6 +20,8 @@ public class Component {
 
     public int getIndex() { return index; }
     public char getSymbol() { return symbol; }
+    public void setTimeLimit(Integer timeLimit) { this.timeLimit = timeLimit; }
+    public Integer getTimeLimit() { return timeLimit; }
     public Future<Double> getResult() { return result; }
     public void setResult(Future<Double> result) { this.result = result; }
     public ComponentStatus getStatus() { return status; }

@@ -39,9 +39,15 @@ public class TaskManager {
         while (true) {
             System.out.print("> ");
             String command = scanner.nextLine();
-            if (command.equals("exit")) break;
-            manager.processCommand(command);
+            if (command.trim().isEmpty()) {
+                manager.processCommand("interactive");
+            } else if (command.equalsIgnoreCase("exit")) {
+                break;
+            } else {
+                manager.processCommand(command);
+            }
         }
+
 
         scanner.close();
         manager.shutdown();

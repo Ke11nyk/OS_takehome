@@ -26,8 +26,10 @@ public class CommandProcessor {
         try {
             switch (parts[0].toLowerCase()) {
                 case "group":
-                    if (parts.length != 2) throw new IllegalArgumentException("Usage: group <index>");
-                    handleGroupCommand(Integer.parseInt(parts[1]));
+                    if (parts.length < 2) throw new IllegalArgumentException("Usage: group <index> [limit <time in seconds>]");
+                    int groupIndex = Integer.parseInt(parts[1]);
+                    Integer timeLimit = (parts.length == 4 && parts[2].equalsIgnoreCase("limit")) ? Integer.parseInt(parts[3]) : null;
+                    handleGroupCommand(groupIndex, timeLimit);
                     break;
                 case "new":
                     if (parts.length != 2) throw new IllegalArgumentException("Usage: new <component symbol>");
@@ -55,8 +57,14 @@ public class CommandProcessor {
         }
     }
 
-    private void handleGroupCommand(int index) {
+    private void handleGroupCommand(int index, Integer timeLimit) {
         groupManager.createOrSwitchGroup(index);
+
+        if (timeLimit != null) {
+            ComponentGroup currentGroup = groupManager.getCurrentGroup();
+            currentGroup.setTimeLimit(timeLimit);
+            System.out.println("Set time limit of " + timeLimit + " seconds for group " + currentGroup.getIndex());
+        }
     }
 
     private void handleNewCommand(char symbol) throws IOException {
@@ -73,6 +81,21 @@ public class CommandProcessor {
 
         System.out.println("Created component " + componentIndex + " with symbol " + symbol);
     }
+
+    private void handleSetLimitCommand(String target, int timeLimit) {
+        if (target.equalsIgnoreCase("group")) {
+            ComponentGroup currentGroup = groupManager.getCurrentGroup();
+            currentGroup.setTimeLimit(timeLimit);
+            System.out.println("Set time limit of " + timeLimit + " seconds for group " + currentGroup.getIndex());
+        } else {
+            int componentIndex = Integer.parseInt(target);
+            Component component = groupManager.getCurrentGroup().getComponents().get(componentIndex);
+            if (component == null) throw new IllegalArgumentException("Component not found: " + componentIndex);
+            component.setTimeLimit(timeLimit);
+            System.out.println("Set time limit of " + timeLimit + " seconds for component " + componentIndex);
+        }
+    }
+
 
     private Socket createComponentSocket(int componentIndex) throws IOException {
         int maxRetries = 3;
@@ -101,8 +124,12 @@ public class CommandProcessor {
 
     private void handleRunCommand(int argument) {
         ComponentGroup currentGroup = groupManager.getCurrentGroup();
-        currentGroup.setRunning(true);
 
+        if (currentGroup.getTimeLimit() != null) {
+            System.out.println("Execution time limit: " + currentGroup.getTimeLimit() + " seconds");
+        }
+
+        currentGroup.setRunning(true);
         Map<Integer, Component> newComponents = new HashMap<>();
         List<CompletableFuture<Void>> componentFutures = new ArrayList<>();
 
@@ -128,6 +155,16 @@ public class CommandProcessor {
                         throw new CompletionException(e);
                     }
                 }, groupManager.getExecutorService());
+
+                if (currentGroup.getTimeLimit() != null) {
+                    resultFuture = resultFuture.orTimeout(currentGroup.getTimeLimit(), TimeUnit.SECONDS)
+                            .exceptionally(e -> {
+                                newComponent.setStatus(ComponentStatus.FAILED);
+                                notificationManager.sendNotification("Component " + newComponent.getIndex() +
+                                        " failed due to time limit: " + e.getMessage());
+                                return null;
+                            });
+                }
 
                 newComponent.setResult(resultFuture);
 
@@ -175,6 +212,11 @@ public class CommandProcessor {
     }
 
     private void handleStatusCommand(int componentIndex) {
+        if (!notificationManager.isInteractiveMode()) {
+            System.out.println("The status command is only available in interactive mode.");
+            return;
+        }
+
         ComponentGroup currentGroup = groupManager.getCurrentGroup();
         Component component = currentGroup.getComponents().get(componentIndex);
         if (component == null) {
@@ -183,6 +225,7 @@ public class CommandProcessor {
 
         System.out.println("Component " + componentIndex + " status: " + component.getStatus());
     }
+
 
     private void handleSummaryCommand() {
         ComponentGroup currentGroup = groupManager.getCurrentGroup();
